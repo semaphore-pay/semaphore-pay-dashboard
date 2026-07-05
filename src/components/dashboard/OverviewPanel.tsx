@@ -5,7 +5,7 @@ function StatCard({ label, value, change, changeType, prefix }: {
   label: string
   value: number
   change: number
-  changeType: "increase" | "decrease"
+  changeType: "increase" | "decrease" | "neutral"
   prefix?: string
 }) {
   return (
@@ -15,12 +15,12 @@ function StatCard({ label, value, change, changeType, prefix }: {
         <span className="text-xl font-semibold text-foreground">
           {prefix}{value}
         </span>
-        <span className={`inline-flex items-center gap-0.5 text-xs ${changeType === "increase" ? "text-emerald-500" : "text-red-500"}`}>
+        <span className={`inline-flex items-center gap-0.5 text-xs ${changeType === "increase" ? "text-emerald-500" : changeType === "decrease" ? "text-red-500" : "text-muted-foreground"}`}>
           {changeType === "increase" ? (
             <ArrowUp className="h-3 w-3" />
-          ) : (
+          ) : changeType === "decrease" ? (
             <ArrowDown className="h-3 w-3" />
-          )}
+          ) : null}
           {change}
         </span>
       </div>

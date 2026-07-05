@@ -4,12 +4,15 @@ import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    babel({ presets: [reactCompilerPreset()] })
+    babel({ presets: [reactCompilerPreset()] }),
+    cloudflare()
   ],
     resolve: {
     alias: {

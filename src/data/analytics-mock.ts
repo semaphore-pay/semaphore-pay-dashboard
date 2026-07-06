@@ -11,7 +11,7 @@ import type {
 // activeSubscriptions only, no pricing data yet).
 
 export const overviewMetrics: Metric[] = [
-  { label: "MRR", value: 18420, change: 8.2, changeType: "increase", prefix: "$" },
+  { label: "MRR", value: 18420, change: 8.2, changeType: "increase", prefix: "₦" },
   { label: "Active Subscribers", value: 1284, change: 4.6, changeType: "increase" },
   { label: "Customers", value: 2931, change: 2.1, changeType: "increase" },
 ]
@@ -50,9 +50,9 @@ export const retentionCohorts: RetentionCohort[] = [
 ];
 export const extendedOverviewMetrics: Metric[] = [
   ...overviewMetrics,
-  { label: "ARR", value: 145000, change: 15, changeType: "increase", prefix: "$" },
+  { label: "ARR", value: 145000, change: 15, changeType: "increase", prefix: "₦" },
   { label: "Active Trials", value: 1240, change: 8, changeType: "increase" },
-  { label: "Realized LTV", value: 450, change: 2, changeType: "increase", prefix: "$" },
+  { label: "Realized LTV", value: 450, change: 2, changeType: "increase", prefix: "₦" },
   { label: "Churn Rate", value: 3.2, change: 0.5, changeType: "decrease", suffix: "%" },
 ];
 

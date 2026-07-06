@@ -177,3 +177,87 @@ export function reportEntitlement(collectionId: string, input: ReportEntitlement
     input,
   );
 }
+
+// ──── Analytics ────
+
+export interface CollectionAnalytics {
+  mrr: number;
+  arr: number;
+  activeTrials: number;
+  subscribersByStatus: Record<string, number>;
+  planBreakdown: Array<{
+    planId: string;
+    planName: string;
+    subscribers: number;
+    mrr: number;
+    interval: string;
+  }>;
+  stats: {
+    plans: number;
+    products: number;
+    customers: number;
+    activeSubscriptions: number;
+  };
+}
+
+export function getAnalytics(collectionId: string) {
+  return req<CollectionAnalytics>("GET", `/collections/${collectionId}/analytics`);
+}
+
+// ──── Subscriptions ────
+
+export interface Subscription {
+  id: string;
+  collectionId: string;
+  customerId: string;
+  planId: string;
+  status: string;
+  cancelAtPeriodEnd: boolean;
+  startedAt: string | null;
+  currentPeriodStartAt: string | null;
+  currentPeriodEndAt: string | null;
+  trialEndAt: string | null;
+  createdAt: string;
+  plan: {
+    id: string;
+    name: string;
+    priceAmount: number;
+    priceCurrency: string;
+    interval: string;
+  } | null;
+}
+
+export interface ListSubscriptionsResult {
+  subscriptions: Subscription[];
+  total: number;
+}
+
+export function listSubscriptions(
+  collectionId: string,
+  params?: { status?: string; planId?: string; customerId?: string; limit?: number; offset?: number },
+) {
+  const query = new URLSearchParams();
+  if (params?.status) query.set("status", params.status);
+  if (params?.planId) query.set("planId", params.planId);
+  if (params?.customerId) query.set("customerId", params.customerId);
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.offset) query.set("offset", String(params.offset));
+  const qs = query.toString();
+  return req<ListSubscriptionsResult>("GET", `/collections/${collectionId}/subscriptions${qs ? `?${qs}` : ""}`);
+}
+
+export function getSubscription(collectionId: string, subscriptionId: string) {
+  return req<Subscription | null>("GET", `/collections/${collectionId}/subscriptions/${subscriptionId}`);
+}
+
+export function pauseSubscription(collectionId: string, subscriptionId: string) {
+  return req<Subscription>("POST", `/collections/${collectionId}/subscriptions/${subscriptionId}/pause`);
+}
+
+export function resumeSubscription(collectionId: string, subscriptionId: string) {
+  return req<Subscription>("POST", `/collections/${collectionId}/subscriptions/${subscriptionId}/resume`);
+}
+
+export function reactivateSubscription(collectionId: string, subscriptionId: string) {
+  return req<Subscription>("POST", `/collections/${collectionId}/subscriptions/${subscriptionId}/reactivate`);
+}

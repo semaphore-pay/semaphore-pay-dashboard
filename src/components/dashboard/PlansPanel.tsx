@@ -19,7 +19,7 @@ import { usePlansStore, useDashboardStore } from "@/store";
 const overviewStats = [
   { label: "Active Plans", value: "6", change: 3.2, isIncrease: true },
   { label: "Total Subscribers", value: "2,842", change: 7.8, isIncrease: true },
-  { label: "Total MRR", value: "$74.5k", change: 12.1, isIncrease: true },
+  { label: "Total MRR", value: "₦74.5k", change: 12.1, isIncrease: true },
 ];
 
 const mockPlans = [
@@ -59,7 +59,7 @@ const mockPlans = [
   {
     id: "plan_starter_legacy",
     name: "Starter (Legacy)",
-    description: "Old $29 tier, no longer offered",
+    description: "Old ₦29 tier, no longer offered",
     price: 2900,
     interval: "month",
     subscribers: 145,
@@ -72,9 +72,9 @@ const mockPlans = [
 type Plan = typeof mockPlans[0];
 
 function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-NG", {
     style: "currency",
-    currency: "USD",
+    currency: "NGN",
     minimumFractionDigits: 0,
   }).format(cents / 100);
 }
@@ -231,7 +231,7 @@ export function PlansPanel() {
               </CardHeader>
               <CardContent className="p-4 space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">Price (USD)</label>
+                  <label className="text-xs font-medium text-foreground">Price (NGN)</label>
                   <Input defaultValue={((selectedPlan as any).price / 100).toString()} type="number" className="h-8 text-sm" />
                 </div>
                 <div className="space-y-1.5">

@@ -3,7 +3,6 @@ import {
   DollarSign,
   Users,
   RefreshCcw,
-  Download,
   type LucideIcon,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,8 +14,6 @@ interface ViewTabItem {
   icon: LucideIcon;
 }
 
-// Config per Section. Only "analytics" has real sub-views right now — the
-// rest get a single placeholder tab until those sections are built out.
 const sectionViews: Record<Section, ViewTabItem[]> = {
   analytics: [
     { value: "overview", label: "Overview", icon: LayoutGrid },
@@ -28,6 +25,8 @@ const sectionViews: Record<Section, ViewTabItem[]> = {
   plans: [{ value: "overview", label: "Overview", icon: LayoutGrid }],
   products: [{ value: "overview", label: "Overview", icon: LayoutGrid }],
   customers: [{ value: "overview", label: "Overview", icon: LayoutGrid }],
+  settings: [{ value: "overview", label: "Overview", icon: LayoutGrid }],
+  profile: [{ value: "overview", label: "Overview", icon: LayoutGrid }],
 };
 
 interface ViewTabsProps {
@@ -35,6 +34,7 @@ interface ViewTabsProps {
   activeSubView: AnalyticsSubView;
   onSubViewChange: (view: AnalyticsSubView) => void;
   analyticsMode: AnalyticsMode;
+  actions?: React.ReactNode;
 }
 
 export function ViewTabs({
@@ -42,9 +42,9 @@ export function ViewTabs({
   activeSubView,
   onSubViewChange,
   analyticsMode,
+  actions,
 }: ViewTabsProps) {
   const isBasicAnalytics = activeSection === "analytics" && analyticsMode === "basic";
-
   const views = isBasicAnalytics
     ? sectionViews.analytics.filter(v => v.value === "overview")
     : sectionViews[activeSection];
@@ -69,14 +69,11 @@ export function ViewTabs({
         </TabsList>
       </Tabs>
 
-      {activeSection === "analytics" && (
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Export
-        </button>
+      {/* Render the passed-in buttons on the right */}
+      {actions && (
+        <div className="flex items-center gap-2">
+          {actions}
+        </div>
       )}
     </div>
   );

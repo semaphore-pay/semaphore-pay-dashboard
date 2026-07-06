@@ -25,16 +25,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAnalyticsStore } from "@/store";
 import type { AnalyticsSubView, AnalyticsMode, Metric } from "@/types/dashboard";
-import {
-  extendedOverviewMetrics,
-  revenueTrend,
-  arrTrend,
-  subscriberTrend,
-  trialTrend,
-  planBreakdown,
-  retentionCohorts,
-} from "@/data/analytics-mock";
 
 interface AnalyticsPanelProps {
   activeSubView: AnalyticsSubView;
@@ -51,8 +43,8 @@ function formatMetricValue(metric: Metric) {
 function MetricCard({ metric }: { metric: Metric }) {
   const isIncrease = metric.changeType === "increase";
   const TrendIcon = isIncrease ? TrendingUpIcon : TrendingDownIcon;
-  const colorClass = isIncrease 
-    ? "text-emerald-600 dark:text-emerald-400" 
+  const colorClass = isIncrease
+    ? "text-emerald-600 dark:text-emerald-400"
     : "text-red-600 dark:text-red-400";
 
   return (
@@ -91,10 +83,12 @@ const chartConfigs: ChartConfig = {
 };
 
 function OverviewContent() {
+  const { overviewMetrics, revenueTrend, subscriberTrend } = useAnalyticsStore();
+
   return (
     <div className="flex flex-col gap-4 @container/main">
       <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
-        {extendedOverviewMetrics.map(metric => (
+        {overviewMetrics.map(metric => (
           <MetricCard key={metric.label} metric={metric} />
         ))}
       </div>
@@ -143,6 +137,8 @@ function OverviewContent() {
 }
 
 function RevenueContent() {
+  const { revenueTrend, arrTrend, planBreakdown } = useAnalyticsStore();
+
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -208,6 +204,8 @@ function RevenueContent() {
 }
 
 function SubscribersContent() {
+  const { subscriberTrend, trialTrend } = useAnalyticsStore();
+
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -256,6 +254,8 @@ function SubscribersContent() {
 }
 
 function RetentionContent() {
+  const { retentionCohorts } = useAnalyticsStore();
+
   return (
     <Card className="shadow-none">
       <CardHeader className="p-4 pb-2">
@@ -299,7 +299,7 @@ export function AnalyticsPanel({ activeSubView, mode, onModeChange }: AnalyticsP
   const effectiveSubView = mode === "basic" ? "overview" : activeSubView;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 bg-background [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 bg-background [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
       <div className="flex items-center gap-0.5 self-start rounded-md bg-muted/60 p-0.5">
         <button
           type="button"

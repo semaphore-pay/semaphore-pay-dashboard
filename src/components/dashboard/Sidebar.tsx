@@ -10,6 +10,8 @@ import {
   Moon,
   MoreHorizontal,
   PanelLeft,
+  LogOut,
+  User,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -17,11 +19,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useTheme } from '@/components/theme-provider';
 import logoWithName from '@/assets/logo-with-name.svg';
+import { useDashboardStore, useCollectionsStore, useAuthStore } from '@/store';
+import { authClient } from '@/lib/auth-client';
 import type { Section } from '@/types/dashboard';
+import { useEffect } from 'react';
 
 const navItems: { section: Section; label: string; icon: typeof BarChart3 }[] = [
   { section: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -31,42 +37,62 @@ const navItems: { section: Section; label: string; icon: typeof BarChart3 }[] = 
   { section: 'customers', label: 'Customers', icon: Users },
 ];
 
-// Collections are just your apps/products — arbitrary names, nothing
-// environment-related. "Sandbox" is not one of these; it's a mode.
-const collections = [
+const hardcodedCollections = [
   { id: 'potalink', name: 'Pota Link App' },
   { id: 'formly', name: 'Formly' },
 ];
 
-type Environment = 'sandbox' | 'production';
-
-interface SidebarProps {
-  active: Section;
-  onActiveChange: (section: Section) => void;
-}
-
-export function Sidebar({ active, onActiveChange }: SidebarProps) {
+export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const [environment, setEnvironment] = useState<Environment>('sandbox');
-  // Remembers which real collection to return to when leaving sandbox mode.
-  const [collectionId, setCollectionId] = useState(collections[0].id);
   const { theme, setTheme } = useTheme();
+  const {
+    activeSection,
+    setSection,
+    environment,
+    setEnvironment,
+    activeCollectionId,
+    setActiveCollection,
+  } = useDashboardStore();
+  const { collections, fetch: fetchCollections } = useCollectionsStore();
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    fetchCollections();
+  }, [fetchCollections]);
 
   const isDark =
     theme === 'dark' ||
     (theme === 'system' &&
       window.matchMedia('(prefers-color-scheme: dark)').matches);
 
+  const displayCollections = collections.length > 0
+    ? collections.map(c => ({ id: c.id, name: c.name }))
+    : hardcodedCollections;
+
   const activeCollection =
-    collections.find(c => c.id === collectionId) ?? collections[0];
+    displayCollections.find(c => c.id === activeCollectionId) ?? displayCollections[0];
 
   const displayName =
-    environment === 'sandbox' ? 'Sandbox' : activeCollection.name;
+    environment === 'sandbox' ? 'Sandbox' : (activeCollection?.name ?? 'Select Collection');
 
   const handleSelectCollection = (id: string) => {
-    setCollectionId(id);
+    setActiveCollection(id);
     setEnvironment('production');
   };
+
+  const userInitials = user?.name
+    ?.split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase() ?? '?';
+
+  const userName = user?.name ?? 'User';
+  const userEmail = user?.email ?? '';
+
+  async function handleSignOut() {
+    await authClient.signOut();
+    window.location.href = '/';
+  }
 
   return (
     <aside
@@ -94,7 +120,7 @@ export function Sidebar({ active, onActiveChange }: SidebarProps) {
           </button>
         </div>
 
-        {/* Collection switcher — now the prominent header */}
+        {/* Collection switcher */}
         <DropdownMenu>
           <DropdownMenuTrigger
             className={`flex items-center rounded-md px-2 py-1.5 text-left hover:bg-muted/70 ${
@@ -116,7 +142,7 @@ export function Sidebar({ active, onActiveChange }: SidebarProps) {
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-52">
-            {collections.map(c => (
+            {displayCollections.map(c => (
               <DropdownMenuItem
                 key={c.id}
                 onClick={() => handleSelectCollection(c.id)}
@@ -174,12 +200,12 @@ export function Sidebar({ active, onActiveChange }: SidebarProps) {
             <button
               key={section}
               type="button"
-              onClick={() => onActiveChange(section)}
+              onClick={() => setSection(section)}
               title={collapsed ? label : undefined}
               className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
                 collapsed ? 'justify-center' : ''
               } ${
-                active === section
+                activeSection === section
                   ? 'bg-muted font-medium text-foreground'
                   : 'text-muted-foreground hover:bg-muted/50'
               }`}
@@ -195,9 +221,14 @@ export function Sidebar({ active, onActiveChange }: SidebarProps) {
       <div className="flex flex-col gap-0.5 border-t border-border pt-2">
         <button
           type="button"
+          onClick={() => setSection('settings')}
           title={collapsed ? 'Settings' : undefined}
-          className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-muted-foreground hover:bg-muted/50 ${
+          className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
             collapsed ? 'justify-center' : ''
+          } ${
+            activeSection === 'settings'
+              ? 'bg-muted font-medium text-foreground'
+              : 'text-muted-foreground hover:bg-muted/50'
           }`}
         >
           <Settings className="h-4 w-4 shrink-0" />
@@ -228,32 +259,48 @@ export function Sidebar({ active, onActiveChange }: SidebarProps) {
           </Button>
         </div>
 
-        <button
-          type="button"
-          title={collapsed ? 'Samuel Ayibatarri' : undefined}
-          className={`mt-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-muted/50 ${
-            collapsed ? 'justify-center' : ''
-          }`}
-        >
-          <Avatar className="h-7 w-7">
-            <AvatarFallback className="bg-[#B15CE8] text-xs text-white">
-              SA
-            </AvatarFallback>
-          </Avatar>
-          {!collapsed && (
-            <>
-              <span className="flex-1 min-w-0 leading-tight">
-                <span className="block truncate font-medium text-foreground">
-                  Samuel Ayibatarri
+        {/* User avatar with dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={`mt-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-muted/50 ${
+              collapsed ? 'justify-center' : ''
+            }`}
+          >
+            <Avatar className="h-7 w-7">
+              <AvatarFallback className="bg-[#B15CE8] text-xs text-white">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
+            {!collapsed && (
+              <>
+                <span className="flex-1 min-w-0 leading-tight">
+                  <span className="block truncate font-medium text-foreground">
+                    {userName}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {userEmail}
+                  </span>
                 </span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  sam@semaphorepay.tech
-                </span>
-              </span>
-              <MoreHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </>
-          )}
-        </button>
+                <MoreHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </>
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-52">
+            <DropdownMenuItem onClick={() => setSection('profile')}>
+              <User className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSection('settings')}>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </aside>
   );

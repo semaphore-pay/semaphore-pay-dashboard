@@ -5,7 +5,9 @@ export type Section =
   | 'entitlements'
   | 'plans'
   | 'products'
-  | 'customers';
+  | 'customers'
+  | 'settings'
+  | 'profile';
 
 export type AnalyticsSubView =
   | 'overview'

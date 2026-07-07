@@ -6,4 +6,5 @@ export { useCustomersStore } from "./customers";
 export { useEntitlementsStore } from "./entitlements";
 export { useAnalyticsStore } from "./analytics";
 export { useAuthStore } from "./auth";
+export { useBalanceStore } from "./balance";
 export type { SessionUser, Session } from "./auth";

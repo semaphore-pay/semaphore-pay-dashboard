@@ -29,23 +29,14 @@ function TabActions({ section }: { section: Section }) {
       );
     case 'entitlements':
       return (
-        <>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted cursor-pointer"
-          >
-            <RefreshCcw className="h-3.5 w-3.5" />
-            Sync
-          </button>
-          <Button
-            size="sm"
-            className="h-7 gap-1.5 text-xs cursor-pointer"
-            onClick={() => store.openEntitlementsAdd()}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New Entitlement
-          </Button>
-        </>
+        <Button
+          size="sm"
+          className="h-7 gap-1.5 text-xs cursor-pointer"
+          onClick={() => store.openEntitlementsAdd()}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New Feature
+        </Button>
       );
     case 'plans':
       return (
@@ -79,25 +70,7 @@ function TabActions({ section }: { section: Section }) {
         </>
       );
     case 'customers':
-      return (
-        <>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted cursor-pointer"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export CSV
-          </button>
-          <Button
-            size="sm"
-            className="h-7 gap-1.5 text-xs cursor-pointer"
-            onClick={() => store.openCustomersAdd()}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add Customer
-          </Button>
-        </>
-      );
+      return null;
     default:
       return null;
   }
@@ -144,7 +117,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
           phoneNumber: (session.user as any).phoneNumber ?? null,
           username: (session.user as any).username ?? null,
           businessType: (session.user as any).businessType ?? 'none',
-          profileSetupComplete: (session.user as any).profileSetupComplete ?? false,
+          profileSetupComplete: (session.user as any).profileSetupComplete === true || useAuthStore.getState().user?.profileSetupComplete === true,
           createdAt: session.user.createdAt,
         },
         {

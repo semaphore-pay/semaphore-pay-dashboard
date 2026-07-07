@@ -42,10 +42,13 @@ function formatMetricValue(metric: Metric) {
 
 function MetricCard({ metric }: { metric: Metric }) {
   const isIncrease = metric.changeType === "increase";
+  const isDecrease = metric.changeType === "decrease";
   const TrendIcon = isIncrease ? TrendingUpIcon : TrendingDownIcon;
   const colorClass = isIncrease
     ? "text-emerald-600 dark:text-emerald-400"
-    : "text-red-600 dark:text-red-400";
+    : isDecrease
+    ? "text-red-600 dark:text-red-400"
+    : "text-muted-foreground";
 
   return (
     <Card className="@container/card data-[slot=card]" data-slot="card">
@@ -57,13 +60,13 @@ function MetricCard({ metric }: { metric: Metric }) {
         <CardAction>
           <Badge variant="outline" className={colorClass}>
             <TrendIcon className="mr-1 size-3.5" />
-            {isIncrease ? "+" : "-"}{Math.abs(metric.change)}%
+            {isIncrease ? "+" : isDecrease ? "-" : ""}{Math.abs(metric.change)}%
           </Badge>
         </CardAction>
       </CardHeader>
       <CardFooter className="flex-col items-start gap-1.5 text-sm">
         <div className={`line-clamp-1 flex gap-2 font-medium ${colorClass}`}>
-          {isIncrease ? "Trending up" : "Trending down"} this period <TrendIcon className="size-4" />
+          {isIncrease ? "Trending up" : isDecrease ? "Trending down" : "No change"} this period {metric.changeType !== "neutral" && <TrendIcon className="size-4" />}
         </div>
         <div className="text-muted-foreground">
           Compared to last period

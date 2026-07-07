@@ -1,41 +1,65 @@
-import { ArrowDown, ArrowUp, Clock, CheckCircle2, Circle, BarChart4 } from "lucide-react"
-import { metrics, chartData, recentActivity, projects } from "@/data/mock"
+import {
+  ArrowDown,
+  ArrowUp,
+  Clock,
+  CheckCircle2,
+  Circle,
+  BarChart4,
+} from 'lucide-react';
+import { metrics, chartData, recentActivity, projects } from '@/data/mock';
 
-function StatCard({ label, value, change, changeType, prefix }: {
-  label: string
-  value: number
-  change: number
-  changeType: "increase" | "decrease" | "neutral"
-  prefix?: string
+function StatCard({
+  label,
+  value,
+  change,
+  changeType,
+  prefix,
+}: {
+  label: string;
+  value: number;
+  change: number;
+  changeType: 'increase' | 'decrease' | 'neutral';
+  prefix?: string;
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
       <span className="text-xs text-muted-foreground">{label}</span>
       <div className="mt-1 flex items-baseline gap-1.5">
         <span className="text-xl font-semibold text-foreground">
-          {prefix}{value}
+          {prefix}
+          {value}
         </span>
-        <span className={`inline-flex items-center gap-0.5 text-xs ${changeType === "increase" ? "text-emerald-500" : changeType === "decrease" ? "text-red-500" : "text-muted-foreground"}`}>
-          {changeType === "increase" ? (
+        <span
+          className={`inline-flex items-center gap-0.5 text-xs ${
+            changeType === 'increase'
+              ? 'text-emerald-500'
+              : changeType === 'decrease'
+              ? 'text-red-500'
+              : 'text-muted-foreground'
+          }`}
+        >
+          {changeType === 'increase' ? (
             <ArrowUp className="h-3 w-3" />
-          ) : changeType === "decrease" ? (
+          ) : changeType === 'decrease' ? (
             <ArrowDown className="h-3 w-3" />
           ) : null}
           {change}
         </span>
       </div>
     </div>
-  )
+  );
 }
 
 function BarChart() {
-  const maxValue = Math.max(...chartData.map((d) => d.created + d.completed))
-  const chartHeight = 96
+  const maxValue = Math.max(...chartData.map(d => d.created + d.completed));
+  const chartHeight = 96;
 
   return (
     <div className="rounded-lg border border-border bg-card p-3">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-foreground">Task Activity</span>
+        <span className="text-xs font-medium text-foreground">
+          Task Activity
+        </span>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-brand" />
@@ -47,13 +71,19 @@ function BarChart() {
           </span>
         </div>
       </div>
-      <div className="flex items-end justify-between gap-1" style={{ height: `${chartHeight}px` }}>
-        {chartData.map((point) => {
-          const completedHeight = (point.completed / maxValue) * chartHeight
-          const createdHeight = (point.created / maxValue) * chartHeight
+      <div
+        className="flex items-end justify-between gap-1"
+        style={{ height: `${chartHeight}px` }}
+      >
+        {chartData.map(point => {
+          const completedHeight = (point.completed / maxValue) * chartHeight;
+          const createdHeight = (point.created / maxValue) * chartHeight;
           return (
-            <div key={point.name} className="flex flex-1 flex-col items-center gap-1 justify-end">
-              <div className="flex w-full items-end justify-center gap-[2px]">
+            <div
+              key={point.name}
+              className="flex flex-1 flex-col items-center gap-1 justify-end"
+            >
+              <div className="flex w-full items-end justify-center gap-0.5">
                 <div
                   className="w-2.5 rounded-t-sm bg-emerald-400"
                   style={{ height: `${completedHeight}px` }}
@@ -63,13 +93,15 @@ function BarChart() {
                   style={{ height: `${createdHeight}px` }}
                 />
               </div>
-              <span className="text-[10px] text-muted-foreground">{point.name}</span>
+              <span className="text-[10px] text-muted-foreground">
+                {point.name}
+              </span>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 function ActivityFeed() {
@@ -77,27 +109,31 @@ function ActivityFeed() {
     <div className="rounded-lg border border-border bg-card p-3">
       <div className="flex items-center gap-1.5 mb-2">
         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-foreground">Recent Activity</span>
+        <span className="text-xs font-medium text-foreground">
+          Recent Activity
+        </span>
       </div>
       <div className="flex flex-col gap-2">
-        {recentActivity.map((a) => (
+        {recentActivity.map(a => (
           <div key={a.id} className="flex items-start gap-2">
             <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] font-medium text-brand-foreground">
               {a.userAvatar}
             </span>
             <div className="min-w-0 flex-1">
               <span className="text-xs">
-                <span className="font-medium text-foreground">{a.user}</span>{" "}
-                <span className="text-muted-foreground">{a.action}</span>{" "}
+                <span className="font-medium text-foreground">{a.user}</span>{' '}
+                <span className="text-muted-foreground">{a.action}</span>{' '}
                 <span className="font-medium text-foreground">{a.target}</span>
               </span>
-              <span className="block text-[10px] text-muted-foreground">{a.timestamp}</span>
+              <span className="block text-[10px] text-muted-foreground">
+                {a.timestamp}
+              </span>
             </div>
           </div>
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 function ProjectList() {
@@ -105,16 +141,25 @@ function ProjectList() {
     <div className="rounded-lg border border-border bg-card p-3">
       <div className="flex items-center gap-1.5 mb-2">
         <BarChart4 className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-foreground">Active Projects</span>
+        <span className="text-xs font-medium text-foreground">
+          Active Projects
+        </span>
       </div>
       <div className="flex flex-col gap-2">
-        {projects.map((p) => {
-          const pct = p.taskCount > 0 ? Math.round((p.completedCount / p.taskCount) * 100) : 0
+        {projects.map(p => {
+          const pct =
+            p.taskCount > 0
+              ? Math.round((p.completedCount / p.taskCount) * 100)
+              : 0;
           return (
             <div key={p.id} className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-foreground">{p.name}</span>
-                <span className="text-[10px] text-muted-foreground">{pct}%</span>
+                <span className="text-xs font-medium text-foreground">
+                  {p.name}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {pct}%
+                </span>
               </div>
               <div className="h-1.5 w-full rounded-full bg-muted">
                 <div
@@ -123,11 +168,11 @@ function ProjectList() {
                 />
               </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 export function OverviewPanel() {
@@ -136,7 +181,7 @@ export function OverviewPanel() {
       {/* Left column: stats + chart + details */}
       <div className="flex flex-1 flex-col gap-4">
         <div className="grid grid-cols-4 gap-3">
-          {metrics.map((m) => (
+          {metrics.map(m => (
             <StatCard key={m.label} {...m} />
           ))}
         </div>
@@ -148,16 +193,21 @@ export function OverviewPanel() {
         </div>
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: "Avg. Completion", value: "3.2d", icon: CheckCircle2 },
-            { label: "Backlog Items", value: "12", icon: Circle },
-            { label: "Team Velocity", value: "18/wk", icon: BarChart4 },
-            { label: "Open PRs", value: "8", icon: Circle },
+            { label: 'Avg. Completion', value: '3.2d', icon: CheckCircle2 },
+            { label: 'Backlog Items', value: '12', icon: Circle },
+            { label: 'Team Velocity', value: '18/wk', icon: BarChart4 },
+            { label: 'Open PRs', value: '8', icon: Circle },
           ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="flex items-center gap-2 rounded-lg border border-border bg-card p-3">
+            <div
+              key={label}
+              className="flex items-center gap-2 rounded-lg border border-border bg-card p-3"
+            >
               <Icon className="h-4 w-4 text-muted-foreground" />
               <div>
                 <span className="text-xs text-muted-foreground">{label}</span>
-                <span className="ml-1 text-xs font-medium text-foreground">{value}</span>
+                <span className="ml-1 text-xs font-medium text-foreground">
+                  {value}
+                </span>
               </div>
             </div>
           ))}
@@ -168,5 +218,5 @@ export function OverviewPanel() {
         <ProjectList />
       </div>
     </div>
-  )
+  );
 }

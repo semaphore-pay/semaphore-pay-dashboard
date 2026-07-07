@@ -1,17 +1,28 @@
-import { create } from "zustand";
-import * as api from "@/lib/api";
-import { useDashboardStore } from "./dashboard";
+import { create } from 'zustand';
+import * as api from '@/lib/api';
+import { useDashboardStore } from './dashboard';
 
-type ViewMode = "list" | "manage" | "add";
+type ViewMode = 'list' | 'manage' | 'add';
 
-// Local product type — matches mock shape
 export interface Product {
+  internalId: string;
   id: string;
   name: string;
-  sku: string;
-  status: string;
-  price: number;
-  planId: string;
+  group: string;
+  isDefault: boolean;
+  priceAmount: number | null;
+  priceCurrency: string | null;
+  priceInterval: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  features: Array<{
+    featureId: string;
+    type: string;
+    limit?: number;
+    resetInterval?: string;
+    config?: Record<string, unknown>;
+  }>;
 }
 
 interface ProductsState {
@@ -22,40 +33,85 @@ interface ProductsState {
   error: string | null;
 
   fetch: (collectionId: string) => Promise<void>;
+  get: (collectionId: string, productId: string) => Promise<Product | null>;
   select: (product: Product | null) => void;
   create: (collectionId: string, input: api.ProductInput) => Promise<void>;
+  update: (
+    collectionId: string,
+    productId: string,
+    input: Partial<api.ProductInput>
+  ) => Promise<void>;
+  remove: (collectionId: string, productId: string) => Promise<void>;
   openManage: (product: Product) => void;
   openAdd: () => void;
   goBack: () => void;
 }
 
-export const useProductsStore = create<ProductsState>((set) => ({
+export const useProductsStore = create<ProductsState>(set => ({
   products: [],
   selectedProduct: null,
-  activeView: "list",
+  activeView: 'list',
   loading: false,
   error: null,
 
-  fetch: async (collectionId) => {
+  fetch: async collectionId => {
     set({ loading: true, error: null });
     try {
       const products = await api.listProducts(collectionId);
-      set({ products: products as any[], loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+      set({ products: products as Product[], loading: false });
+    } catch (err) {
+      set({ error: (err as Error).message, loading: false });
     }
   },
 
-  select: (product) => set({ selectedProduct: product }),
+  get: async (collectionId, productId) => {
+    try {
+      const product = await api.getProduct(collectionId, productId);
+      if (!product) return null;
+      return {
+        ...product,
+        features: product.features.map(f => ({
+          ...f,
+          limit: f.limit ?? undefined,
+        })),
+      } as Product;
+    } catch {
+      return null;
+    }
+  },
+
+  select: product => set({ selectedProduct: product }),
 
   create: async (collectionId, input) => {
     await api.createProduct(collectionId, input);
     const products = await api.listProducts(collectionId);
-    set({ products: products as any[], activeView: "list" });
+    set({ products: products as Product[], activeView: 'list' });
     useDashboardStore.getState().openProductsList();
   },
 
-  openManage: (product) => set({ selectedProduct: product, activeView: "manage" }),
-  openAdd: () => set({ activeView: "add", selectedProduct: null }),
-  goBack: () => set({ selectedProduct: null, activeView: "list" }),
+  update: async (collectionId, productId, input) => {
+    await api.updateProduct(collectionId, productId, input);
+    const products = await api.listProducts(collectionId);
+    set({ products: products as Product[], activeView: 'list' });
+    useDashboardStore.getState().openProductsList();
+  },
+
+  remove: async (collectionId, productId) => {
+    await api.deleteProduct(collectionId, productId);
+    const products = await api.listProducts(collectionId);
+    set({ products: products as Product[] });
+  },
+
+  openManage: product => {
+    set({ selectedProduct: product, activeView: 'manage' });
+    useDashboardStore.getState().openProductsManage();
+  },
+  openAdd: () => {
+    set({ activeView: 'add', selectedProduct: null });
+    useDashboardStore.getState().openProductsAdd();
+  },
+  goBack: () => {
+    set({ selectedProduct: null, activeView: 'list' });
+    useDashboardStore.getState().openProductsList();
+  },
 }));

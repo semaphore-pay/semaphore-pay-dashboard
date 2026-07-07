@@ -1,140 +1,97 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   MoreHorizontal,
   ArrowLeft,
-  Save,
   Mail,
-  Phone,
-  MapPin,
-  CreditCard,
-  TrendingUpIcon,
-  TrendingDownIcon
+  User,
 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { DataTable, DragHandle } from "@/components/data-table";
+import { DataTable } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardAction,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
 import { useCustomersStore, useDashboardStore } from "@/store";
+import type { CustomerListItem } from "@/lib/api";
 
-function resolveCountryFromData(phone?: string, ip?: string) {
-  if (phone?.startsWith("+234") || ip?.startsWith("102.")) return { code: "NG", name: "Nigeria", flag: "🇳🇬" };
-  if (phone?.startsWith("+1") || ip?.startsWith("104.")) return { code: "US", name: "United States", flag: "🇺🇸" };
-  if (phone?.startsWith("+44") || ip?.startsWith("82.")) return { code: "GB", name: "United Kingdom", flag: "🇬🇧" };
-  if (phone?.startsWith("+49") || ip?.startsWith("31.")) return { code: "DE", name: "Germany", flag: "🇩🇪" };
-  return { code: "UN", name: "Unknown", flag: "🌍" };
-}
-
-const overviewStats = [
-  { label: "Total Customers", value: "12,482", change: 12.5, isIncrease: true },
-  { label: "Global Reach", value: "42", suffix: " Countries", change: 2.1, isIncrease: true },
-  { label: "Past Due", value: "142", change: 5.4, isIncrease: false },
-];
-
-const mockCustomers = [
-  { id: "cus_9238f4j2", name: "Samuel Ayibatarri", email: "samuel@example.com", phone: "+2348012345678", ipAddress: "102.89.34.12", status: "active", mrr: 4900, joined: "2026-04-12" },
-  { id: "cus_38nf29xk", name: "Sarah Jenkins", email: "s.jenkins@acme.inc", phone: "+14155552671", ipAddress: "104.28.19.44", status: "active", mrr: 19900, joined: "2026-05-01" },
-  { id: "cus_882md90p", name: "Liam O'Connor", email: "liam.oconnor@domain.co.uk", phone: "+447700900077", ipAddress: "82.132.21.1", status: "past_due", mrr: 4900, joined: "2026-02-18" },
-  { id: "cus_unkn2049", name: "Hidden User", email: "hidden@proxy.net", phone: "", ipAddress: "192.168.1.1", status: "inactive", mrr: 0, joined: "2026-06-20" },
-];
-
-type Customer = typeof mockCustomers[0];
-
-function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    minimumFractionDigits: 0,
-  }).format(cents / 100);
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-NG", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function CustomersPanel() {
   const { customersView, searchQuery } = useDashboardStore();
-  const { selectedCustomer, openManage, goBack } = useCustomersStore();
+  const { customers, total, loading, load, selectedCustomer, openManage, goBack } = useCustomersStore();
 
-  const filteredCustomers = useMemo(() => {
-    if (!searchQuery) return mockCustomers;
-    const q = searchQuery.toLowerCase();
-    return mockCustomers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.id.toLowerCase().includes(q) ||
-        c.status.toLowerCase().includes(q)
-    );
-  }, [searchQuery]);
+  const { activeCollectionId } = useDashboardStore();
 
-  const columns: ColumnDef<Customer>[] = [
-    {
-      id: "drag",
-      header: () => null,
-      cell: ({ row }) => <DragHandle id={row.original.id} />,
-    },
+  useEffect(() => {
+    if (activeCollectionId) load({ search: searchQuery || undefined });
+  }, [activeCollectionId, searchQuery]);
+
+  const overviewStats = useMemo(() => {
+    const withSubscriptions = customers.filter((c) => c.subscriptionCount > 0).length;
+    const withActivity = customers.filter((c) => c.lastActivityAt).length;
+    return [
+      { label: "Total Customers", value: String(total), change: 0, isIncrease: true },
+      { label: "With Subscriptions", value: String(withSubscriptions), change: 0, isIncrease: true },
+      { label: "Active Recently", value: String(withActivity), change: 0, isIncrease: true },
+    ];
+  }, [customers, total]);
+
+  const columns: ColumnDef<CustomerListItem>[] = [
     {
       accessorKey: "name",
       header: "Customer",
       cell: ({ row }) => (
         <div>
-          <div className="font-medium text-foreground">{row.original.name}</div>
+          <div className="font-medium text-foreground">{row.original.name || row.original.userId}</div>
           <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
-            <Mail className="h-3 w-3" /> {row.original.email}
+            {row.original.email ? (
+              <><Mail className="h-3 w-3" /> {row.original.email}</>
+            ) : (
+              <><User className="h-3 w-3" /> {row.original.userId}</>
+            )}
           </div>
         </div>
       ),
     },
     {
-      accessorKey: "location",
-      header: "Location",
-      cell: ({ row }) => {
-        const location = resolveCountryFromData(row.original.phone, row.original.ipAddress);
-        return (
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm" title={location.name}>{location.flag}</span>
-            <span className="text-xs font-medium text-foreground">{location.code}</span>
-          </div>
-        );
-      },
+      accessorKey: "subscriptionCount",
+      header: "Subscriptions",
+      cell: ({ row }) => (
+        <span className="text-xs font-medium text-foreground">
+          {row.original.subscriptionCount}
+        </span>
+      ),
     },
     {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const isPastDue = row.original.status === "past_due";
-        const isActive = row.original.status === "active";
-        return (
-          <Badge
-            variant="outline"
-            className={`text-[10px] font-medium capitalize shadow-none border-transparent ${
-              isActive
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                : isPastDue
-                ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {row.original.status.replace("_", " ")}
-          </Badge>
-        );
-      },
+      accessorKey: "lastActivityAt",
+      header: "Last Activity",
+      cell: ({ row }) => (
+        <span className="text-[11px] text-muted-foreground">
+          {formatDate(row.original.lastActivityAt)}
+        </span>
+      ),
     },
     {
-      accessorKey: "mrr",
-      header: "MRR",
-      cell: ({ row }) => <span className="text-xs font-medium text-foreground">{formatCurrency(row.original.mrr)}</span>,
-    },
-    {
-      accessorKey: "joined",
+      accessorKey: "createdAt",
       header: "Joined",
-      cell: ({ row }) => <span className="text-[11px] text-muted-foreground">{row.original.joined}</span>,
+      cell: ({ row }) => (
+        <span className="text-[11px] text-muted-foreground">
+          {formatDate(row.original.createdAt)}
+        </span>
+      ),
     },
     {
       id: "actions",
@@ -151,100 +108,57 @@ export function CustomersPanel() {
   ];
 
   if (customersView === "manage" && selectedCustomer) {
-    const location = resolveCountryFromData(
-      (selectedCustomer as any).phone,
-      (selectedCustomer as any).ipAddress,
-    );
-
     return (
-      <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6 bg-background [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6 bg-background [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={goBack} className="h-8 w-8 cursor-pointer">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h2 className="text-lg font-semibold text-foreground">{(selectedCustomer as any).name}</h2>
-            <p className="text-sm text-muted-foreground mt-1 font-mono">
-              {(selectedCustomer as any).id}
-            </p>
+            <h2 className="text-lg font-semibold text-foreground">{selectedCustomer.name || selectedCustomer.userId}</h2>
+            <p className="text-sm text-muted-foreground mt-1 font-mono">{selectedCustomer.id}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
-            <Card className="shadow-none border-border/60">
-              <CardHeader className="p-4 border-b border-border/50">
-                <CardTitle className="text-sm font-semibold">Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Full Name</label>
-                    <Input defaultValue={(selectedCustomer as any).name} className="h-8 text-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Email Address</label>
-                    <div className="relative">
-                      <Mail className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                      <Input defaultValue={(selectedCustomer as any).email} className="h-8 pl-8 text-sm" />
-                    </div>
-                  </div>
+            <div className="rounded-lg border border-border/60 p-4 space-y-3">
+              <h3 className="text-sm font-semibold">Details</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">User ID</span>
+                  <p className="font-mono mt-0.5">{selectedCustomer.userId}</p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Phone Number</label>
-                    <div className="relative">
-                      <Phone className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                      <Input defaultValue={(selectedCustomer as any).phone} className="h-8 pl-8 text-sm font-mono" />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Last Known IP</label>
-                    <Input defaultValue={(selectedCustomer as any).ipAddress} disabled className="h-8 text-sm font-mono bg-muted/50" />
-                  </div>
+                <div>
+                  <span className="text-muted-foreground">Email</span>
+                  <p className="mt-0.5">{selectedCustomer.email ?? "—"}</p>
                 </div>
-              </CardContent>
-              <CardFooter className="p-4 border-t border-border/50 flex justify-end gap-2 bg-muted/10">
-                <Button size="sm" className="gap-1.5 cursor-pointer">
-                  <Save className="h-3.5 w-3.5" />
-                  Update Profile
-                </Button>
-              </CardFooter>
-            </Card>
+                <div>
+                  <span className="text-muted-foreground">Subscriptions</span>
+                  <p className="mt-0.5">{selectedCustomer.subscriptionCount}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Active Subscriptions</span>
+                  <p className="mt-0.5">{selectedCustomer.activeSubscriptionCount}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-6">
-            <Card className="shadow-none border-border/60 bg-muted/20">
-              <CardHeader className="p-4 border-b border-border/50">
-                <CardTitle className="text-sm font-semibold">Resolved Data</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-md bg-background p-1.5 border border-border">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-foreground">Inferred Location</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                      {location.flag} {location.name} ({location.code})
-                    </p>
-                  </div>
+            <div className="rounded-lg border border-border/60 p-4 space-y-3 bg-muted/20">
+              <h3 className="text-sm font-semibold">Activity</h3>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Joined</span>
+                  <p className="mt-0.5">{formatDate(selectedCustomer.createdAt)}</p>
                 </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-md bg-background p-1.5 border border-border">
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-foreground">Lifetime Value</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {formatCurrency((selectedCustomer as any).mrr * 3)}
-                    </p>
-                  </div>
+                <div>
+                  <span className="text-muted-foreground">Last Activity</span>
+                  <p className="mt-0.5">{formatDate(selectedCustomer.lastActivityAt)}</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -252,18 +166,17 @@ export function CustomersPanel() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6 bg-background [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6 bg-background [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold text-foreground">Customers</h2>
         <p className="text-sm text-muted-foreground">
-          Manage your user base, view subscription status, and analyze customer locations.
+          Manage your user base, view subscription status, and analyze customer activity.
         </p>
       </div>
 
       <div className="@container/main">
         <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs @xl/main:grid-cols-3 dark:*:data-[slot=card]:bg-card">
           {overviewStats.map((stat) => {
-            const TrendIcon = stat.isIncrease ? TrendingUpIcon : TrendingDownIcon;
             const colorClass = stat.isIncrease
               ? "text-emerald-600 dark:text-emerald-400"
               : "text-red-600 dark:text-red-400";
@@ -273,18 +186,17 @@ export function CustomersPanel() {
                 <CardHeader>
                   <CardDescription>{stat.label}</CardDescription>
                   <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                    {stat.value}{stat.suffix || ""}
+                    {stat.value}
                   </CardTitle>
                   <CardAction>
                     <Badge variant="outline" className={colorClass}>
-                      <TrendIcon className="mr-1 size-3.5" />
                       {stat.isIncrease ? "+" : "-"}{stat.change}%
                     </Badge>
                   </CardAction>
                 </CardHeader>
                 <CardFooter className="flex-col items-start gap-1.5 text-sm">
                   <div className={`line-clamp-1 flex gap-2 font-medium ${colorClass}`}>
-                    {stat.isIncrease ? "Trending up" : "Trending down"} this period <TrendIcon className="size-4" />
+                    {stat.isIncrease ? "Trending up" : "Trending down"} this period
                   </div>
                   <div className="text-muted-foreground">
                     Compared to last period
@@ -296,10 +208,14 @@ export function CustomersPanel() {
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredCustomers}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">Loading...</div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={customers}
+        />
+      )}
     </div>
   );
 }

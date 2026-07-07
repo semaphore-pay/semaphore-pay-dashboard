@@ -1,53 +1,63 @@
-import { create } from "zustand";
-import * as api from "@/lib/api";
-import { useDashboardStore } from "./dashboard";
-
-type ViewMode = "list" | "manage" | "add";
-
-// Local customer type — matches mock shape
-export interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  ipAddress: string;
-  status: string;
-  mrr: number;
-  joined: string;
-}
+import { create } from 'zustand';
+import * as api from '@/lib/api';
+import { useDashboardStore } from './dashboard';
 
 interface CustomersState {
-  customers: Customer[];
-  selectedCustomer: Customer | null;
-  activeView: ViewMode;
+  customers: api.CustomerListItem[];
+  total: number;
+  hasMore: boolean;
+  selectedCustomer: api.CustomerListItem | null;
+  activeView: 'list' | 'manage';
   loading: boolean;
   error: string | null;
 
-  upsert: (collectionId: string, input: api.CustomerInput) => Promise<void>;
-  select: (customer: Customer | null) => void;
-  openManage: (customer: Customer) => void;
-  openAdd: () => void;
+  load: (params?: {
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }) => Promise<void>;
+  select: (customer: api.CustomerListItem | null) => void;
+  openManage: (customer: api.CustomerListItem) => void;
   goBack: () => void;
 }
 
-export const useCustomersStore = create<CustomersState>((set) => ({
+function getCollectionId(): string {
+  const id = useDashboardStore.getState().activeCollectionId;
+  if (!id) throw new Error('No collection selected');
+  return id;
+}
+
+export const useCustomersStore = create<CustomersState>((set, _) => ({
   customers: [],
+  total: 0,
+  hasMore: false,
   selectedCustomer: null,
-  activeView: "list",
+  activeView: 'list',
   loading: false,
   error: null,
 
-  upsert: async (collectionId, input) => {
-    const customer = await api.upsertCustomer(collectionId, input);
-    set((s) => ({
-      customers: [...s.customers.filter((c) => c.id !== customer.id), customer as any],
-      activeView: "list",
-    }));
-    useDashboardStore.getState().openCustomersList();
+  load: async params => {
+    set({ loading: true, error: null });
+    try {
+      const collectionId = getCollectionId();
+      const result = await api.listCustomers(collectionId, params);
+      set({
+        customers: result.data,
+        total: result.total,
+        hasMore: result.hasMore,
+        loading: false,
+      });
+    } catch (err) {
+      if (err instanceof Error) {
+        set({ error: err.message, loading: false });
+      } else {
+        set({ error: (err as Error).message, loading: false });
+      }
+    }
   },
 
-  select: (customer) => set({ selectedCustomer: customer }),
-  openManage: (customer) => set({ selectedCustomer: customer, activeView: "manage" }),
-  openAdd: () => set({ activeView: "add", selectedCustomer: null }),
-  goBack: () => set({ selectedCustomer: null, activeView: "list" }),
+  select: customer => set({ selectedCustomer: customer }),
+  openManage: customer =>
+    set({ selectedCustomer: customer, activeView: 'manage' }),
+  goBack: () => set({ selectedCustomer: null, activeView: 'list' }),
 }));

@@ -8,10 +8,11 @@ interface CollectionsState {
   error: string | null;
 
   fetch: () => Promise<void>;
-  create: (name: string) => Promise<void>;
+  create: (name: string, environment?: "sandbox" | "production") => Promise<api.Collection>;
+  ensureSandbox: () => Promise<api.Collection>;
 }
 
-export const useCollectionsStore = create<CollectionsState>((set) => ({
+export const useCollectionsStore = create<CollectionsState>((set, get) => ({
   collections: [],
   loading: false,
   error: null,
@@ -21,19 +22,37 @@ export const useCollectionsStore = create<CollectionsState>((set) => ({
     try {
       const collections = await api.listCollections();
       set({ collections, loading: false });
-      // Auto-select first collection if none selected
-      const { activeCollectionId } = useDashboardStore.getState();
-      if (!activeCollectionId && collections.length > 0) {
-        useDashboardStore.getState().setActiveCollection(collections[0].id);
+
+      const { activeCollectionId, environment } = useDashboardStore.getState();
+      const filtered = collections.filter((c) => c.environment === environment);
+
+      if (filtered.length === 0) {
+        if (environment === "sandbox") {
+          const sandbox = await get().ensureSandbox();
+          useDashboardStore.getState().setActiveCollection(sandbox.id);
+        }
+      } else {
+        const exists = filtered.some((c) => c.id === activeCollectionId);
+        if (!exists) {
+          useDashboardStore.getState().setActiveCollection(filtered[0].id);
+        }
       }
     } catch (e: any) {
       set({ error: e.message, loading: false });
     }
   },
 
-  create: async (name: string) => {
-    const result = await api.createCollection(name);
+  create: async (name: string, environment: "sandbox" | "production" = "sandbox") => {
+    const result = await api.createCollection(name, environment);
     set((s) => ({ collections: [...s.collections, result.collection] }));
     useDashboardStore.getState().setActiveCollection(result.collection.id);
+    return result.collection;
+  },
+
+  ensureSandbox: async () => {
+    const { collections } = get();
+    const existing = collections.find((c) => c.name === "Sandbox" && c.environment === "sandbox");
+    if (existing) return existing;
+    return await get().create("Sandbox", "sandbox");
   },
 }));

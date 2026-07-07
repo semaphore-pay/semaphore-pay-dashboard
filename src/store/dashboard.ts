@@ -27,20 +27,22 @@ interface DashboardState {
 
   openPlansAdd: () => void;
   openPlansList: () => void;
+  openPlansManage: () => void;
   openProductsAdd: () => void;
   openProductsList: () => void;
-  openCustomersAdd: () => void;
+  openProductsManage: () => void;
   openCustomersList: () => void;
   openEntitlementsAdd: () => void;
   openEntitlementsList: () => void;
+  openEntitlementsManage: () => void;
 }
 
 export const useDashboardStore = create<DashboardState>((set) => ({
   activeSection: "analytics",
   activeSubView: "overview",
   analyticsMode: "basic",
-  environment: "sandbox",
-  activeCollectionId: null,
+  environment: (localStorage.getItem("sb_env") as "sandbox" | "production") || "sandbox",
+  activeCollectionId: localStorage.getItem("sb_collection") || null,
   searchQuery: "",
 
   plansView: "list",
@@ -51,16 +53,24 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   setSection: (section) => set({ activeSection: section, activeSubView: "overview", searchQuery: "" }),
   setSubView: (view) => set({ activeSubView: view }),
   setAnalyticsMode: (mode) => set({ analyticsMode: mode }),
-  setEnvironment: (env) => set({ environment: env }),
-  setActiveCollection: (id) => set({ activeCollectionId: id }),
+  setEnvironment: (env) => {
+    localStorage.setItem("sb_env", env);
+    set({ environment: env });
+  },
+  setActiveCollection: (id) => {
+    if (id) localStorage.setItem("sb_collection", id);
+    set({ activeCollectionId: id });
+  },
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   openPlansAdd: () => set({ plansView: "add", activeSection: "plans" }),
   openPlansList: () => set({ plansView: "list" }),
+  openPlansManage: () => set({ plansView: "manage" }),
   openProductsAdd: () => set({ productsView: "add", activeSection: "products" }),
   openProductsList: () => set({ productsView: "list" }),
-  openCustomersAdd: () => set({ customersView: "add", activeSection: "customers" }),
+  openProductsManage: () => set({ productsView: "manage" }),
   openCustomersList: () => set({ customersView: "list" }),
   openEntitlementsAdd: () => set({ entitlementsView: "add", activeSection: "entitlements" }),
   openEntitlementsList: () => set({ entitlementsView: "list" }),
+  openEntitlementsManage: () => set({ entitlementsView: "manage" }),
 }));

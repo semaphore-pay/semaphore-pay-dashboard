@@ -90,7 +90,7 @@ export function LoginForm({
               </div>
               <span className="sr-only">Semaphore Pay</span>
             </a>
-            <h1 className="text-xl font-bold">Welcome to Semaphore Pay</h1>
+            {/* <h1 className="text-xl font-bold">Welcome to Semaphore Pay</h1> */}
           </div>
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>

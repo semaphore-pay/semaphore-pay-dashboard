@@ -1,7 +1,7 @@
 import { createAuthClient } from 'better-auth/react';
-import { magicLinkClient } from 'better-auth/client/plugins';
+import { magicLinkClient, phoneNumberClient } from 'better-auth/client/plugins';
 
 export const authClient = createAuthClient({
-  baseURL: 'http://localhost:8787',
-  plugins: [magicLinkClient()],
+  baseURL: 'https://api.semaphorepay.tech',
+  plugins: [magicLinkClient(), phoneNumberClient()],
 });

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useDashboardStore } from "@/store";
 import { AnalyticsPanel } from "@/components/dashboard/AnalyticsPanel";
 import { EntitlementsPanel } from "@/components/dashboard/EntitlementsPanel";
@@ -8,7 +9,15 @@ import { SettingsPanel } from "./SettingsPanel";
 import { ProfilePanel } from "./ProfilePanel";
 
 export function DashboardPanels() {
-  const { activeSection, activeSubView, analyticsMode, setAnalyticsMode } = useDashboardStore();
+  const { activeSection, activeSubView, analyticsMode, setAnalyticsMode, activeCollectionId } = useDashboardStore();
+
+  useEffect(() => {
+    if (activeSection === "analytics") {
+      import("@/store/analytics").then(({ useAnalyticsStore }) => {
+        useAnalyticsStore.getState().fetch();
+      });
+    }
+  }, [activeSection, activeCollectionId]);
 
   switch (activeSection) {
     case "analytics":

@@ -7,7 +7,7 @@ import type {
 const BASE = "https://api.semaphorepay.tech/api/v1/billing";
 
 async function req<T>(
-  method: "GET" | "POST" | "DELETE",
+  method: "GET" | "POST" | "DELETE" | "PUT",
   path: string,
   body?: unknown,
 ): Promise<T> {

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Download, RefreshCcw, Plus } from 'lucide-react';
+import { Download, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoginPage from '@/pages/Login';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';

@@ -26,7 +26,8 @@ function computeChange(current: number, previous: number): { change: number; cha
   return { change: 0, changeType: "neutral" };
 }
 
-function buildOverviewMetrics(analytics: CollectionAnalytics, trend: { current: MetricSnapshot | null; previous: MetricSnapshot | null }): Metric[] {
+type TrendData = Pick<MetricSnapshot, "mrr" | "activeSubscriptions" | "customers">;
+function buildOverviewMetrics(analytics: CollectionAnalytics, trend: { current: TrendData | null; previous: TrendData | null }): Metric[] {
   const mrrChange = computeChange(trend.current?.mrr ?? 0, trend.previous?.mrr ?? 0);
   const subChange = computeChange(trend.current?.activeSubscriptions ?? 0, trend.previous?.activeSubscriptions ?? 0);
   const custChange = computeChange(trend.current?.customers ?? 0, trend.previous?.customers ?? 0);

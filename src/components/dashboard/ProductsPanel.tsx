@@ -55,6 +55,7 @@ function intervalLabel(interval: string | null) {
   if (!interval) return "one-time";
   if (interval === "monthly") return "mo";
   if (interval === "yearly") return "yr";
+  if (interval === "test_15min") return "15m";
   return interval;
 }
 
@@ -191,7 +192,7 @@ export function ProductsPanel() {
         name: data.name,
         group: data.group || undefined,
         isDefault: data.isDefault,
-        priceAmount: data.priceAmount ?? undefined,
+        priceAmount: data.priceAmount != null ? data.priceAmount * 100 : undefined,
         priceCurrency: data.priceCurrency || undefined,
         priceInterval: data.priceInterval || undefined,
         version: data.version || undefined,
@@ -509,7 +510,7 @@ function ManageProductView({
   const [form, setForm] = useState<CreateProductForm>({
     name: product.name,
     group: product.group,
-    priceAmount: product.priceAmount ?? undefined,
+    priceAmount: product.priceAmount != null ? product.priceAmount / 100 : undefined,
     priceCurrency: product.priceCurrency ?? "NGN",
     priceInterval: product.priceInterval ?? undefined,
     version: product.version,

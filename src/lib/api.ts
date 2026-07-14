@@ -4,10 +4,12 @@ import type {
   FeatureInput,
 } from "@semaphore-pay/client";
 
-const BASE = "https://api.semaphorepay.tech/api/v1/billing";
+// const BASE = "https://api.semaphorepay.tech/api/v1/billing";
+
+const BASE = "http://localhost:8787/api/v1/billing";
 
 async function req<T>(
-  method: "GET" | "POST" | "DELETE",
+  method: "GET" | "POST" | "DELETE" | "PUT",
   path: string,
   body?: unknown,
 ): Promise<T> {
@@ -29,6 +31,7 @@ export interface Collection {
   id: string;
   name: string;
   environment: "sandbox" | "production";
+  callbackUrl?: string;
   plans: number;
   products: number;
   customers: number;
@@ -39,12 +42,16 @@ export function listCollections() {
   return req<Collection[]>("GET", "/collections");
 }
 
-export function createCollection(name: string, environment: "sandbox" | "production" = "sandbox") {
+export function createCollection(name: string, environment: "sandbox" | "production" = "sandbox", callbackUrl?: string) {
   return req<{ collection: Collection; keys: { public: string; secret: string } }>(
     "POST",
     "/collections",
-    { name, environment },
+    { name, environment, callbackUrl },
   );
+}
+
+export function updateCollection(collectionId: string, input: { name?: string; callbackUrl?: string }) {
+  return req<Collection>("PUT", `/collections/${collectionId}`, input);
 }
 
 // ──── API Keys ────
@@ -78,7 +85,7 @@ export interface PlanInput {
   description?: string;
   priceAmount: number;
   priceCurrency?: string;
-  interval: "monthly" | "yearly" | "none";
+  interval: "monthly" | "yearly" | "none" | "test_15min";
   trialPeriodDays?: number;
   features?: FeatureInput[];
   badge?: string;

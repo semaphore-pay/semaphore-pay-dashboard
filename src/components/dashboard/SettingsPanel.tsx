@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   Building2,
   Key,
@@ -20,8 +21,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -56,6 +59,15 @@ const tabs: { id: SettingsTab; label: string; icon: typeof Building2 }[] = [
 /* -------------------------------------------------------------------------- */
 /* Reusable danger-zone card                                                 */
 /* -------------------------------------------------------------------------- */
+/*
+ * Confirmation now happens in three layers before a destructive action can
+ * fire:
+ *   1. An explicit "reveal" click (nothing destructive is one click away)
+ *   2. A read acknowledgement checkbox + optional exact-text confirmation
+ *   3. A short mandatory countdown, so the final click can't be a reflex
+ */
+
+const CONFIRM_COUNTDOWN_SECONDS = 3;
 
 function DangerZoneCard({
   title,
@@ -63,21 +75,48 @@ function DangerZoneCard({
   actionLabel,
   onConfirm,
   requireTyping,
+  consequences = [],
 }: {
   title: string;
   description: string;
   actionLabel: string;
   onConfirm?: () => void;
   requireTyping?: string;
+  consequences?: string[];
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(false);
   const [confirmText, setConfirmText] = useState('');
-  const canConfirm = !requireTyping || confirmText === requireTyping;
+  const [countdown, setCountdown] = useState(CONFIRM_COUNTDOWN_SECONDS);
+
+  useEffect(() => {
+    if (!confirmOpen) return;
+    setCountdown(CONFIRM_COUNTDOWN_SECONDS);
+    const interval = setInterval(() => {
+      setCountdown(c => (c > 0 ? c - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [confirmOpen]);
+
+  const typingOk = !requireTyping || confirmText === requireTyping;
+  const canConfirm = acknowledged && typingOk && countdown === 0;
+
+  function handleCancel() {
+    setConfirmOpen(false);
+    setAcknowledged(false);
+    setConfirmText('');
+  }
+
+  function handleConfirm() {
+    if (!canConfirm) return;
+    onConfirm?.();
+    handleCancel();
+  }
 
   return (
-    <Card className="shadow-none border-destructive/30 bg-destructive/2">
-      <CardHeader className="p-4 border-b border-destructive/20">
-        <CardTitle className="text-sm font-semibold text-destructive flex items-center gap-1.5">
+    <Card className="shadow-none border-red-500/30 bg-red-500/3 dark:bg-red-950/10">
+      <CardHeader className="p-4 border-b border-red-500/20 bg-red-500/5">
+        <CardTitle className="text-sm font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
           <AlertTriangle className="h-4 w-4" />
           Danger Zone
         </CardTitle>
@@ -103,11 +142,8 @@ function DangerZoneCard({
             <Button
               variant="outline"
               size="sm"
-              className="cursor-pointer shrink-0"
-              onClick={() => {
-                setConfirmOpen(false);
-                setConfirmText('');
-              }}
+              className="cursor-pointer shrink-0 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10"
+              onClick={handleCancel}
             >
               Cancel
             </Button>
@@ -115,12 +151,42 @@ function DangerZoneCard({
         </div>
 
         {confirmOpen && (
-          <div className="mt-4 pt-4 border-t border-destructive/20 space-y-3">
-            {requireTyping ? (
+          <div className="mt-4 pt-4 border-t border-red-500/20 space-y-3">
+            {consequences.length > 0 && (
+              <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3">
+                <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1.5">
+                  This will:
+                </p>
+                <ul className="space-y-1">
+                  {consequences.map((c, i) => (
+                    <li
+                      key={i}
+                      className="text-xs text-muted-foreground flex gap-1.5"
+                    >
+                      <span className="text-red-500/70">•</span>
+                      <span>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <Checkbox
+                checked={acknowledged}
+                onCheckedChange={v => setAcknowledged(!!v)}
+                className="mt-0.5 border-red-500/40 data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
+              />
+              <span className="text-xs text-muted-foreground">
+                I understand this action is permanent and cannot be undone.
+              </span>
+            </label>
+
+            {requireTyping && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground">
                   Type{' '}
-                  <span className="font-mono text-destructive bg-destructive/10 px-1 rounded">
+                  <span className="font-mono text-red-600 dark:text-red-400 bg-red-500/10 px-1 rounded">
                     {requireTyping}
                   </span>{' '}
                   to confirm
@@ -128,27 +194,20 @@ function DangerZoneCard({
                 <Input
                   value={confirmText}
                   onChange={e => setConfirmText(e.target.value)}
-                  className="h-8 text-sm focus-visible:ring-destructive"
+                  className="h-8 text-sm focus-visible:ring-red-500"
                   placeholder={requireTyping}
                 />
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                This action cannot be undone. Are you sure you want to continue?
-              </p>
             )}
+
             <Button
               variant="destructive"
               size="sm"
               disabled={!canConfirm}
               className="cursor-pointer shadow-none"
-              onClick={() => {
-                onConfirm?.();
-                setConfirmOpen(false);
-                setConfirmText('');
-              }}
+              onClick={handleConfirm}
             >
-              {actionLabel}
+              {countdown > 0 ? `${actionLabel} (${countdown})` : actionLabel}
             </Button>
           </div>
         )}
@@ -165,27 +224,62 @@ function GeneralTab() {
   const { collections } = useCollectionsStore();
   const { activeCollectionId } = useDashboardStore();
   const activeCollection = collections.find(c => c.id === activeCollectionId);
+  const [callbackUrl, setCallbackUrl] = useState(activeCollection?.callbackUrl ?? '');
+  const [saving, setSaving] = useState(false);
+  const [copiedCollectionId, setCopiedCollectionId] = useState(false);
+
+  const handleCopyCollectionId = async () => {
+    if (!activeCollectionId) return;
+    await navigator.clipboard.writeText(activeCollectionId);
+    setCopiedCollectionId(true);
+    setTimeout(() => setCopiedCollectionId(false), 2000);
+  };
+
+  const handleSaveCallback = async () => {
+    if (!activeCollectionId) return;
+    setSaving(true);
+    try {
+      await api.updateCollection(activeCollectionId, { callbackUrl });
+      toast.success("Callback URL updated");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to update callback URL");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    setCallbackUrl(activeCollection?.callbackUrl ?? '');
+  }, [activeCollection]);
 
   const stats = [
     {
       label: 'Configured Plans',
       value: activeCollection?.plans ?? 0,
       icon: Layers,
+      footerTitle: 'Plans active',
+      footerSubtitle: 'Available for checkout',
     },
     {
       label: 'Active Products',
       value: activeCollection?.products ?? 0,
       icon: Package,
+      footerTitle: 'Products live',
+      footerSubtitle: 'Ready to sell',
     },
     {
       label: 'Total Customers',
       value: activeCollection?.customers ?? 0,
       icon: Users,
+      footerTitle: 'Customer base',
+      footerSubtitle: 'All-time signups',
     },
     {
       label: 'Active Subscriptions',
       value: activeCollection?.activeSubscriptions ?? 0,
       icon: Activity,
+      footerTitle: 'Currently active',
+      footerSubtitle: 'Recurring revenue',
     },
   ];
 
@@ -217,8 +311,57 @@ function GeneralTab() {
             </div>
           </div>
 
+          <div className="space-y-1.5 max-w-xl">
+            <label className="text-xs font-medium text-foreground">
+              Collection ID
+            </label>
+            <div className="flex gap-2">
+              <Input
+                value={activeCollectionId ?? ''}
+                className="h-8 text-sm font-mono text-[11px] bg-muted/30"
+                readOnly
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 cursor-pointer"
+                onClick={handleCopyCollectionId}
+                disabled={!activeCollectionId}
+              >
+                {copiedCollectionId ? (
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Unique identifier for this collection. Used in API requests.
+            </p>
+          </div>
+
+          <div className="space-y-1.5 max-w-xl">
+            <label className="text-xs font-medium text-foreground">
+              Nomba Checkout Callback URL
+            </label>
+            <div className="flex gap-2">
+              <Input
+                value={callbackUrl}
+                onChange={e => setCallbackUrl(e.target.value)}
+                placeholder="https://your-app.com/checkout/callback"
+                className="h-8 text-sm flex-1"
+              />
+              <Button size="sm" className="h-8" onClick={handleSaveCallback} disabled={saving}>
+                {saving ? "Saving..." : "Save"}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Leave empty to use global default. Nomba redirects here after payment.
+            </p>
+          </div>
+
           <div className="@container/main">
-            <div className="grid grid-cols-2 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs @xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
+            <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs @xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
               {stats.map(stat => {
                 const Icon = stat.icon;
                 return (
@@ -227,16 +370,24 @@ function GeneralTab() {
                     className="@container/card data-[slot=card]"
                     data-slot="card"
                   >
-                    <CardHeader className="p-4 pb-2">
-                      <CardDescription className="text-xs">
-                        {stat.label}
-                      </CardDescription>
-                      <CardTitle className="text-2xl font-semibold tabular-nums mt-1">
+                    <CardHeader>
+                      <CardDescription>{stat.label}</CardDescription>
+                      <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
                         {stat.value}
                       </CardTitle>
+                      <CardAction>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+                          <Icon className="h-4 w-4 text-primary" />
+                        </div>
+                      </CardAction>
                     </CardHeader>
-                    <CardFooter className="p-4 pt-0">
-                      <Icon className="h-4 w-4 text-muted-foreground/50" />
+                    <CardFooter className="flex-col items-start gap-1.5 text-sm">
+                      <div className="line-clamp-1 flex gap-2 font-medium text-foreground">
+                        {stat.footerTitle}
+                      </div>
+                      <div className="text-muted-foreground">
+                        {stat.footerSubtitle}
+                      </div>
                     </CardFooter>
                   </Card>
                 );
@@ -251,6 +402,11 @@ function GeneralTab() {
         description="Permanently delete this collection and all associated data. This cannot be undone."
         actionLabel="Delete Collection"
         requireTyping="delete collection"
+        consequences={[
+          'All plans, products, and subscriptions in this collection will be permanently deleted',
+          'Customer records tied to this collection will be lost',
+          'Any live integrations pointing at this collection will break immediately',
+        ]}
       />
     </div>
   );
@@ -272,6 +428,10 @@ function ApiKeysTab() {
     label: string;
   } | null>(null);
   const [confirmText, setConfirmText] = useState('');
+  const [ackRevoke, setAckRevoke] = useState(false);
+  const [revokeCountdown, setRevokeCountdown] = useState(
+    CONFIRM_COUNTDOWN_SECONDS
+  );
 
   useEffect(() => {
     if (!activeCollectionId) return;
@@ -281,6 +441,16 @@ function ApiKeysTab() {
       setLoading(false);
     });
   }, [activeCollectionId]);
+
+  useEffect(() => {
+    if (!revokeTarget) return;
+    setAckRevoke(false);
+    setRevokeCountdown(CONFIRM_COUNTDOWN_SECONDS);
+    const interval = setInterval(() => {
+      setRevokeCountdown(c => (c > 0 ? c - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [revokeTarget]);
 
   const secretKeys = keys.filter(k => k.type === 'secret');
   const publicKeys = keys.filter(k => k.type === 'public');
@@ -314,15 +484,23 @@ function ApiKeysTab() {
     }
   }
 
+  function closeRevokeDialog() {
+    setRevokeTarget(null);
+    setConfirmText('');
+    setAckRevoke(false);
+  }
+
+  const revokeReady =
+    ackRevoke && confirmText === 'revoke' && revokeCountdown === 0;
+
   async function handleRevokeConfirm() {
-    if (!activeCollectionId || !revokeTarget) return;
+    if (!activeCollectionId || !revokeTarget || !revokeReady) return;
     for (const k of revokeTarget.keys) {
       await api.revokeApiKey(activeCollectionId, k.key);
     }
     const revokedKeys = new Set(revokeTarget.keys.map(k => k.key));
     setKeys(prev => prev.filter(k => !revokedKeys.has(k.key)));
-    setRevokeTarget(null);
-    setConfirmText('');
+    closeRevokeDialog();
   }
 
   function openRevokePair() {
@@ -401,7 +579,7 @@ function ApiKeysTab() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                    className="h-6 w-6 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 cursor-pointer"
                     onClick={() =>
                       setRevokeTarget({
                         keys: pair,
@@ -506,27 +684,65 @@ function ApiKeysTab() {
         description="Invalidates every active key. Integrations will stop working immediately."
         actionLabel="Revoke All"
         onConfirm={openRevokePair}
+        consequences={[
+          'Every secret and public key in this collection is invalidated immediately',
+          'Any server or app currently using these keys will start failing requests',
+          "You'll need to generate a new pair and redeploy it before traffic resumes",
+        ]}
       />
 
       <AlertDialog
         open={!!revokeTarget}
-        onOpenChange={() => {
-          setRevokeTarget(null);
-          setConfirmText('');
+        onOpenChange={open => {
+          if (!open) closeRevokeDialog();
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="border-red-500/30">
           <AlertDialogHeader>
-            <AlertDialogTitle>Revoke {revokeTarget?.label}?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
+              <AlertTriangle className="h-4 w-4" />
+              Revoke {revokeTarget?.label}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               This will immediately invalidate these keys. Any application using
               them will stop working. You cannot undo this action.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-2">
+
+          {revokeTarget && (
+            <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3">
+              <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1.5">
+                Keys being revoked:
+              </p>
+              <ul className="space-y-1">
+                {revokeTarget.keys.map(k => (
+                  <li
+                    key={k.key}
+                    className="text-xs text-muted-foreground font-mono"
+                  >
+                    {k.type.toUpperCase()} · {maskKeyPreview(k.key)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <label className="flex items-start gap-2 cursor-pointer select-none py-1">
+            <Checkbox
+              checked={ackRevoke}
+              onCheckedChange={v => setAckRevoke(!!v)}
+              className="mt-0.5 border-red-500/40 data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
+            />
+            <span className="text-xs text-muted-foreground">
+              I understand any integration using these keys will break
+              immediately.
+            </span>
+          </label>
+
+          <div className="py-1">
             <label className="text-xs font-medium text-foreground">
               Type{' '}
-              <span className="font-mono text-destructive bg-destructive/10 px-1 rounded">
+              <span className="font-mono text-red-600 dark:text-red-400 bg-red-500/10 px-1 rounded">
                 revoke
               </span>{' '}
               to confirm
@@ -534,31 +750,33 @@ function ApiKeysTab() {
             <Input
               value={confirmText}
               onChange={e => setConfirmText(e.target.value)}
-              className="h-8 text-sm mt-1.5 focus-visible:ring-destructive"
+              className="h-8 text-sm mt-1.5 focus-visible:ring-red-500"
               placeholder="revoke"
             />
           </div>
+
           <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setRevokeTarget(null);
-                setConfirmText('');
-              }}
-            >
+            <AlertDialogCancel onClick={closeRevokeDialog}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              disabled={confirmText !== 'revoke'}
+              disabled={!revokeReady}
               onClick={handleRevokeConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-none"
+              className="bg-red-600 text-white hover:bg-red-600/90 shadow-none"
             >
-              Revoke Keys
+              {revokeCountdown > 0
+                ? `Revoke Keys (${revokeCountdown})`
+                : 'Revoke Keys'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
+}
+
+function maskKeyPreview(key: string) {
+  return `${key.slice(0, 10)}••••${key.slice(-4)}`;
 }
 
 /* -------------------------------------------------------------------------- */

@@ -52,8 +52,10 @@ function formatCurrency(kobo: number) {
 }
 
 function intervalLabel(interval: string) {
+  if (interval === "test_15min") return "15m";
   if (interval === "monthly") return "mo";
   if (interval === "yearly") return "yr";
+  if (interval === "test_15min") return "15m";
   return interval;
 }
 
@@ -66,7 +68,7 @@ const createPlanSchema = z.object({
   id: z.string().min(1, "ID is required"),
   description: z.string().optional(),
   price: z.number().min(0, "Price must be ≥ 0"),
-  interval: z.enum(["monthly", "yearly", "none"]),
+  interval: z.enum(["monthly", "yearly", "none", "test_15min"]),
   trialPeriodDays: z.number().int().min(0).optional(),
   badge: z.string().optional(),
   isActive: z.boolean().default(true),
@@ -514,6 +516,7 @@ function AddPlanView({
                     <SelectItem value="monthly">Monthly</SelectItem>
                     <SelectItem value="yearly">Yearly</SelectItem>
                     <SelectItem value="none">One-time</SelectItem>
+                    <SelectItem value="test_15min">Test (15 min)</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.interval && <p className="text-[10px] text-red-500">{errors.interval}</p>}

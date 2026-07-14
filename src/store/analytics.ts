@@ -15,6 +15,7 @@ interface AnalyticsState {
   error: string | null;
 
   fetch: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 function computeChange(current: number, previous: number): { change: number; changeType: "increase" | "decrease" | "neutral" } {
@@ -26,7 +27,8 @@ function computeChange(current: number, previous: number): { change: number; cha
   return { change: 0, changeType: "neutral" };
 }
 
-function buildOverviewMetrics(analytics: CollectionAnalytics, trend: { current: MetricSnapshot | null; previous: MetricSnapshot | null }): Metric[] {
+type TrendData = Pick<MetricSnapshot, "mrr" | "activeSubscriptions" | "customers">;
+function buildOverviewMetrics(analytics: CollectionAnalytics, trend: { current: TrendData | null; previous: TrendData | null }): Metric[] {
   const mrrChange = computeChange(trend.current?.mrr ?? 0, trend.previous?.mrr ?? 0);
   const subChange = computeChange(trend.current?.activeSubscriptions ?? 0, trend.previous?.activeSubscriptions ?? 0);
   const custChange = computeChange(trend.current?.customers ?? 0, trend.previous?.customers ?? 0);
@@ -151,6 +153,48 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
       });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to fetch analytics";
+      set({ error: message, loading: false });
+    }
+  },
+
+  refresh: async () => {
+    const collectionId = useDashboardStore.getState().activeCollectionId;
+    if (!collectionId) return;
+    set({ loading: true, error: null });
+    try {
+      const [analytics, history, trend] = await Promise.all([
+        getAnalytics(collectionId),
+        getMetricsHistory(collectionId, 90),
+        getMetricsHistory(collectionId, 2).then(h => ({
+          current: h[0] ?? null,
+          previous: h[1] ?? null,
+        })),
+      ]);
+
+      const effectiveTrend = trend.current
+        ? trend
+        : {
+            current: {
+              mrr: analytics.mrr,
+              activeSubscriptions: analytics.stats.activeSubscriptions,
+              customers: analytics.stats.customers,
+              activeTrials: analytics.activeTrials,
+            },
+            previous: null,
+          };
+
+      set({
+        overviewMetrics: buildOverviewMetrics(analytics, effectiveTrend),
+        revenueTrend: buildRevenueTrend(history),
+        arrTrend: buildArrTrend(history),
+        subscriberTrend: buildSubscriberTrend(history),
+        trialTrend: buildTrialTrend(history),
+        planBreakdown: buildPlanBreakdown(analytics),
+        retentionCohorts: emptyRetentionCohorts,
+        loading: false,
+      });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to refresh analytics";
       set({ error: message, loading: false });
     }
   },

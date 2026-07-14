@@ -1,4 +1,5 @@
-import { TrendingDownIcon, TrendingUpIcon } from "lucide-react";
+import { TrendingDownIcon, TrendingUpIcon, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Area,
   AreaChart,
@@ -299,35 +300,51 @@ function RetentionContent() {
 }
 
 export function AnalyticsPanel({ activeSubView, mode, onModeChange }: AnalyticsPanelProps) {
+  const { refresh } = useAnalyticsStore();
+
+  const handleRefresh = async () => {
+    await refresh();
+  };
+
   const effectiveSubView = mode === "basic" ? "overview" : activeSubView;
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 bg-background [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
-      <div className="flex items-center gap-0.5 self-start rounded-md bg-muted/60 p-0.5">
-        <button
-          type="button"
-          onClick={() => onModeChange("basic")}
-          className={`rounded-[5px] px-3 py-1 text-xs font-medium transition-colors ${
-            mode === "basic"
-              ? "bg-background text-foreground shadow-sm ring-1 ring-border"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-0.5 self-start rounded-md bg-muted/60 p-0.5">
+          <button
+            type="button"
+            onClick={() => onModeChange("basic")}
+            className={`rounded-[5px] px-3 py-1 text-xs font-medium transition-colors ${
+              mode === "basic"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Basic
+          </button>
+          <button
+            type="button"
+            onClick={() => onModeChange("full")}
+            className={`rounded-[5px] px-3 py-1 text-xs font-medium transition-colors ${
+              mode === "full"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Full
+          </button>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleRefresh}
+          disabled={useAnalyticsStore.getState().loading}
+          title="Refresh metrics"
         >
-          Basic
-        </button>
-        <button
-          type="button"
-          onClick={() => onModeChange("full")}
-          className={`rounded-[5px] px-3 py-1 text-xs font-medium transition-colors ${
-            mode === "full"
-              ? "bg-background text-foreground shadow-sm ring-1 ring-border"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Full
-        </button>
+          <RefreshCw className={`h-4 w-4 ${useAnalyticsStore.getState().loading ? "animate-spin" : ""}`} />
+        </Button>
       </div>
-
       {effectiveSubView === "overview" && <OverviewContent />}
       {effectiveSubView === "revenue" && <RevenueContent />}
       {effectiveSubView === "subscribers" && <SubscribersContent />}

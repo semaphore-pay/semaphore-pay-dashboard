@@ -4,9 +4,7 @@ import type {
   FeatureInput,
 } from "@semaphore-pay/client";
 
-// const BASE = "https://api.semaphorepay.tech/api/v1/billing";
-
-const BASE = "http://localhost:8787/api/v1/billing";
+const BASE = "https://api.semaphorepay.tech/api/v1/billing";
 
 async function req<T>(
   method: "GET" | "POST" | "DELETE" | "PUT",

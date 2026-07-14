@@ -28,8 +28,11 @@ export const useCollectionsStore = create<CollectionsState>((set, get) => ({
 
       if (filtered.length === 0) {
         if (environment === "sandbox") {
-          const sandbox = await get().ensureSandbox();
-          useDashboardStore.getState().setActiveCollection(sandbox.id);
+          const existing = collections.find((c) => c.name === "Sandbox" && c.environment === "sandbox");
+          if (!existing) {
+            const sandbox = await get().create("Sandbox", "sandbox");
+            useDashboardStore.getState().setActiveCollection(sandbox.id);
+          }
         }
       } else {
         const exists = filtered.some((c) => c.id === activeCollectionId);
